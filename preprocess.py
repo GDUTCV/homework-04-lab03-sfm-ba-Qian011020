@@ -118,7 +118,10 @@ def detect_keypoints(image_file: os.path):
     """ YOUR CODE HERE:
     Detect keypoints using cv2.SIFT_create() and sift.detectAndCompute
     """
-    
+
+    image = cv2.imread(image_file)
+    sift = cv2.SIFT_create()
+    keypoints, descriptors = sift.detectAndCompute(image, None)
 
 
     """ END YOUR CODE HERE. """
@@ -168,7 +171,13 @@ def create_feature_matches(image_file1: os.path, image_file2: os.path, lowe_rati
     2. Filter the feature matches using the Lowe ratio test.
     """
     
+    bf = cv2.BFMatcher()
+    matches = bf.knnMatch(descriptors1, descriptors2, 2)
 
+    # Apply ratio test
+    for m, n in matches:
+        if m.distance < lowe_ratio * n.distance:
+            good_matches.append([m])
 
     """ END YOUR CODE HERE. """
     if len(good_matches) < min_matches:
@@ -243,7 +252,7 @@ def create_ransac_matches(image_file1: os.path, image_file2: os.path,
     the second image using cv2.findEssentialMatrix(..., method=cv2.RANSAC, threshold=ransac_threshold, ...)
     """
     
-
+    essential_mtx, is_inlier= cv2.findEssentialMat(points1=points1, points2=points2, cameraMatrix=camera_intrinsics, method=cv2.RANSAC, threshold=ransac_threshold)
 
     """ END YOUR CODE HERE """
 
@@ -279,7 +288,18 @@ def create_scene_graph(image_files: list, min_num_inliers: int = 40):
     <min_num_inliers> 
     """
     
+    for i in range(len(image_ids)):
+        id_1 = image_ids[i]
+        for j in range(i+1, len(image_ids)):
+            id_2 = image_ids[j]
+            match_id = '{}_{}'.format(id_1, id_2)
+            match_save_file = os.path.join(RANSAC_MATCH_DIR, match_id + '.npy')
 
+            # Check file exist or not
+            if os.path.exists(match_save_file):
+                inliers = np.load(match_save_file)
+                if len(inliers) > min_num_inliers:
+                    graph.add_edge(i, j)
     
     """ END YOUR CODE HERE """
 
